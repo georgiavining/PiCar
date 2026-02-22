@@ -53,7 +53,7 @@ def create_dataset(
         dataset = tf.data.Dataset.from_tensor_slices(filenames)
         dataset = dataset.map(
             build_test_parser(img_size),
-            num_parallel_calls=tf.data.AUTOTUNE
+            num_parallel_calls=2
         )
         dataset = dataset.batch(batch_size).prefetch(tf.data.AUTOTUNE)
         return dataset
@@ -87,7 +87,7 @@ def create_dataset(
                 ds = ds.cache()
 
             if shuffle_flag:
-                shuffle_buffer = len(indices)
+                shuffle_buffer = min(len(indices), 1000)  # limit buffer size 
                 ds = ds.shuffle(shuffle_buffer)
 
             ds = ds.batch(batch_size)
@@ -104,14 +104,14 @@ def create_dataset(
     dataset = tf.data.Dataset.from_tensor_slices((filenames, angles, speeds))
     dataset = dataset.map(
         build_train_parser(img_size),
-        num_parallel_calls=tf.data.AUTOTUNE
+        num_parallel_calls=2
     )
 
     if cache:
         dataset = dataset.cache()
 
     if shuffle:
-        shuffle_buffer = len(filenames)
+        shuffle_buffer = min(len(filenames), 1000)  
         dataset = dataset.shuffle(shuffle_buffer)
 
     dataset = dataset.batch(batch_size)

@@ -40,13 +40,11 @@ def generate_test_predictions(
     for x in test_dataset:
         pred_angle, pred_speed = model.predict(x, verbose=0)
 
-        pred_speed = (pred_speed > 0.5).astype(int)
-
         for j in range(len(x)):
             results.append({
                 "image_id": image_counter,
                 "angle": float(pred_angle[j][0]),
-                "speed": int(pred_speed[j][0])
+                "speed": float(pred_speed[j][0])
             })
             image_counter += 1
 
