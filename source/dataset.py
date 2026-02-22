@@ -83,14 +83,14 @@ def create_dataset(
                 num_parallel_calls=tf.data.AUTOTUNE
             )
 
+            if cache:
+                ds = ds.cache()
+
             if shuffle_flag:
-                shuffle_buffer = min(len(indices), 1000, batch_size * 10)
+                shuffle_buffer = len(indices)
                 ds = ds.shuffle(shuffle_buffer)
 
             ds = ds.batch(batch_size)
-
-            if cache:
-                ds = ds.cache()
 
             return ds.prefetch(tf.data.AUTOTUNE)
 
