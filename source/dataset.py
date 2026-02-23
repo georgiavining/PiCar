@@ -8,112 +8,34 @@ def preprocess_image(filename, img_size):
     img = tf.image.convert_image_dtype(img, tf.float32)
     return img
 
-def build_train_parser(img_size):
-    def parse_image(filename, angle, speed):
-        img = preprocess_image(filename, img_size)
-        return img, {"angle": angle, "speed": speed}
-    return parse_image
-
-
-def build_test_parser(img_size):
-    def parse_image(filename):
-        img = preprocess_image(filename, img_size)
-        return img
-    return parse_image
-
-def create_dataset(
-    filenames,
-    angles=None,
-    speeds=None,
-    img_size=224,
-    batch_size=32,
-    shuffle=True,
-    sample_size=None,
-    val_split=0.0,
-    test_split=0.0,
-    seed=42,
-    cache=False
-):
+def build_dataset(filenames, labels=None, img_size=224, batch_size=32,
+                  shuffle=False, shuffle_buffer=1000, seed=42):
     """
-    Create TensorFlow datasets for train/validation/test.
-
-    Returns:
-        If val_split=test_split=0 → single dataset
-        Otherwise → (train_ds, val_ds, test_ds)
+    Single function for all dataset types:
+    - labels=None         → test dataset (no labels)
+    - labels=array        → single output dataset (angle or speed)
+    - labels=(arr1, arr2) → dual output dataset (angle + speed dict)
     """
-
-    if sample_size is not None:
-        filenames = filenames[:sample_size]
-        if angles is not None:
-            angles = angles[:sample_size]
-            speeds = speeds[:sample_size]
-
-    #test dataset doesn't have labels, so we handle that case separately
-    if angles is None or speeds is None:
-        dataset = tf.data.Dataset.from_tensor_slices(filenames)
-        dataset = dataset.map(
-            build_test_parser(img_size),
-            num_parallel_calls=2
-        )
-        dataset = dataset.batch(batch_size).prefetch(tf.data.AUTOTUNE)
-        return dataset
-
-    if val_split > 0 or test_split > 0:
-        np.random.seed(seed)
-        idx = np.random.permutation(len(filenames))
-
-        n_total = len(filenames)
-        n_test = int(n_total * test_split)
-        n_val = int(n_total * val_split)
-        n_train = n_total - n_val - n_test
-
-        train_idx = idx[:n_train]
-        val_idx = idx[n_train:n_train + n_val]
-        test_idx = idx[n_train + n_val:]
-
-        def build_subset(indices, shuffle_flag):
-            ds = tf.data.Dataset.from_tensor_slices((
-                np.array(filenames)[indices],
-                np.array(angles)[indices],
-                np.array(speeds)[indices]
-            ))
-
-            ds = ds.map(
-                build_train_parser(img_size),
-                num_parallel_calls=tf.data.AUTOTUNE
-            )
-
-            if cache:
-                ds = ds.cache()
-
-            if shuffle_flag:
-                shuffle_buffer = min(len(indices), 1000)  # limit buffer size 
-                ds = ds.shuffle(shuffle_buffer)
-
-            ds = ds.batch(batch_size)
-
-            return ds.prefetch(tf.data.AUTOTUNE)
-
-        train_ds = build_subset(train_idx, shuffle)
-        val_ds = build_subset(val_idx, False)
-        test_ds = build_subset(test_idx, False)
-
-        return train_ds, val_ds, test_ds
-
-    # If no splits, return single dataset
-    dataset = tf.data.Dataset.from_tensor_slices((filenames, angles, speeds))
-    dataset = dataset.map(
-        build_train_parser(img_size),
-        num_parallel_calls=2
-    )
-
-    if cache:
-        dataset = dataset.cache()
+    if labels is None:
+        ds = tf.data.Dataset.from_tensor_slices(filenames)
+        ds = ds.map(lambda f: preprocess_image(f, img_size), num_parallel_calls=2)
+    elif isinstance(labels, tuple):
+        ds = tf.data.Dataset.from_tensor_slices((filenames, labels[0], labels[1]))
+        ds = ds.map(lambda f, a, s: (preprocess_image(f, img_size), {"angle": a, "speed": s}),
+                    num_parallel_calls=2)
+    else:
+        ds = tf.data.Dataset.from_tensor_slices((filenames, labels))
+        ds = ds.map(lambda f, l: (preprocess_image(f, img_size), l), num_parallel_calls=2)
 
     if shuffle:
-        shuffle_buffer = min(len(filenames), 1000)  
-        dataset = dataset.shuffle(shuffle_buffer)
+        ds = ds.shuffle(shuffle_buffer, seed=seed)
 
-    dataset = dataset.batch(batch_size)
+    return ds.batch(batch_size).prefetch(tf.data.AUTOTUNE)
 
-    return dataset.prefetch(tf.data.AUTOTUNE)
+def split_indices(n_total, val_split=0.1, test_split=0.1, seed=42):
+    np.random.seed(seed)
+    idx = np.random.permutation(n_total)
+    n_test = int(n_total * test_split)
+    n_val = int(n_total * val_split)
+    n_train = n_total - n_val - n_test
+    return idx[:n_train], idx[n_train:n_train+n_val], idx[n_train+n_val:]

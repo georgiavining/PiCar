@@ -1,59 +1,83 @@
+import tensorflow as tf
 from tensorflow.keras import layers, models
 import pandas as pd
 import os
+import numpy as np
 
-def build_model1(
+def build_angle_model(
     input_shape=(224, 224, 3),
-    conv_filters=[32, 64, 128],
-    dense_units=128,
-    activation='relu',
-    final_activation='sigmoid'
+    conv_filters=[64, 128, 256, 512],
+    dense_units=[256, 128],
+    dropout=0.3
 ):
-    inputs = layers.Input(shape=input_shape)
+    inputs = tf.keras.layers.Input(shape=input_shape)
     x = inputs
 
-    # Convolution + Pooling layers
     for i, filters in enumerate(conv_filters):
-        x = layers.Conv2D(filters, (3,3), activation=activation, padding='same', name=f'conv{i+1}')(x)
-        x = layers.MaxPooling2D((2,2), name=f'pool{i+1}')(x)
+        x = tf.keras.layers.Conv2D(filters, (3,3), padding='same', name=f'conv{i+1}')(x)
+        x = tf.keras.layers.BatchNormalization(name=f'bn{i+1}')(x)
+        x = tf.keras.layers.Activation('relu', name=f'act{i+1}')(x)
+        x = tf.keras.layers.MaxPooling2D((2,2), name=f'pool{i+1}')(x)
 
-    # Flatten and Dense
-    x = layers.Flatten()(x)
-    x = layers.Dense(dense_units, activation=activation, name='dense1')(x)
+    x = tf.keras.layers.GlobalAveragePooling2D()(x)
 
-    # Multi-output
-    angle_out = layers.Dense(1, activation=final_activation, name='angle')(x)
-    speed_out = layers.Dense(1, activation=final_activation, name='speed')(x)
+    for i, units in enumerate(dense_units):
+        x = tf.keras.layers.Dense(units, activation='relu', name=f'dense{i+1}')(x)
+        x = tf.keras.layers.Dropout(dropout, name=f'dropout{i+1}')(x)
 
-    model = models.Model(inputs=inputs, outputs=[angle_out, speed_out])
-    return model
+    # Linear output — angle is continuous regression
+    angle_out = tf.keras.layers.Dense(1, activation='sigmoid', name='angle')(x)
 
-def generate_test_predictions(
-    model,
-    test_dataset,
-    predictions_path,
-    model_name,
+    return tf.keras.models.Model(inputs=inputs, outputs=angle_out)
+
+def build_speed_model(
+    input_shape=(224, 224, 3),
+    conv_filters=[32, 64, 128, 256],  # lighter — speed is simpler
+    dense_units=[128],
+    dropout=0.5  # higher dropout — binary task, prone to overfitting
 ):
-    results = []
-    image_counter = 0
+    inputs = tf.keras.layers.Input(shape=input_shape)
+    x = inputs
 
-    for x in test_dataset:
-        pred_angle, pred_speed = model.predict(x, verbose=0)
+    for i, filters in enumerate(conv_filters):
+        x = tf.keras.layers.Conv2D(filters, (3,3), padding='same', name=f'conv{i+1}')(x)
+        x = tf.keras.layers.BatchNormalization(name=f'bn{i+1}')(x)
+        x = tf.keras.layers.Activation('relu', name=f'act{i+1}')(x)
+        x = tf.keras.layers.MaxPooling2D((2,2), name=f'pool{i+1}')(x)
 
-        for j in range(len(x)):
-            results.append({
-                "image_id": image_counter,
-                "angle": float(pred_angle[j][0]),
-                "speed": float(pred_speed[j][0])
-            })
-            image_counter += 1
+    x = tf.keras.layers.GlobalAveragePooling2D()(x)
 
-    df_test_preds = pd.DataFrame(results)
+    for i, units in enumerate(dense_units):
+        x = tf.keras.layers.Dense(units, activation='relu', name=f'dense{i+1}')(x)
+        x = tf.keras.layers.Dropout(dropout, name=f'dropout{i+1}')(x)
+
+    # Sigmoid output — speed is binary
+    speed_out = tf.keras.layers.Dense(1, activation='sigmoid', name='speed')(x)
+
+    return tf.keras.models.Model(inputs=inputs, outputs=speed_out)
+
+def generate_test_predictions(angle_model, speed_model, test_ds,
+                                        predictions_path, model_name):
+    
+    angle_preds, speed_preds = [], []
+    
+    for x in test_ds:
+        angle_preds.extend(angle_model.predict(x, verbose=0).flatten())
+        speed_preds.extend((speed_model.predict(x, verbose=0) > 0.5).astype(int).flatten())
+    
+    df_preds = pd.DataFrame({
+        "image_id": range(len(angle_preds)),
+        "angle": np.array(angle_preds),
+        "speed": np.array(speed_preds)
+    })
 
     os.makedirs(predictions_path, exist_ok=True)
     csv_output = os.path.join(predictions_path, f"{model_name}.csv")
-    df_test_preds.to_csv(csv_output, index=False)
-
+    df_preds.to_csv(csv_output, index=False)
     print(f"Saved to: {csv_output}")
+    return df_preds
 
-    return df_test_preds
+
+
+    model = tf.keras.Model(inputs=inputs, outputs=[angle_out, speed_out])
+    return model
