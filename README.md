@@ -10,9 +10,7 @@ A deep learning project to predict **steering angle** and **speed** from dashcam
 ```
 kaggle/
 ├── data/
-│   ├── train.csv               # Training labels (image_id, angle, speed)
-│   ├── training_images/        # 14,383 training images (.png)
-│   └── test_data/              # 2,000 test images (.png)
+│   └── train.csv               # Training labels (image_id, angle, speed)
 ├── notebooks/
 │   └── images/                          # Training plots of MSE over epochs
 │   └── mlis2026-cnn-angle-speed.ipynb   # Main experiments notebook
