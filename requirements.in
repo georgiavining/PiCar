@@ -1,0 +1,7 @@
+tensorflow
+numpy
+pandas
+opencv-python
+matplotlib
+scikit-learn
+wandb
