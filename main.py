@@ -22,15 +22,15 @@ from src.train import train_one_epoch, evaluate
 SEED         = 42
 IMG_H        = 120
 IMG_W        = 160
-BATCH_SIZE   = 4
-EPOCHS       = 5
+BATCH_SIZE   = 32
+EPOCHS       = 60
 LR           = 1e-3
-WEIGHT_DECAY = 1e-4
-PATIENCE     = 3
-DROPOUT_FIRST_LAYER = 0.3
-DROPOUT_SECOND_LAYER = 0.2
-RUN_NAME = "mobilenet_v3_debug"
-DEVICE       = torch.device('cpu')
+WEIGHT_DECAY = 1e-3
+PATIENCE     = 10
+DROPOUT_FIRST_LAYER = 0.4
+DROPOUT_SECOND_LAYER = 0.3
+RUN_NAME = "mobilenet_v3_higher_dropout"
+DEVICE       = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 #--Paths----------------------------------------------------------------------------
 BASE_DIR          = os.path.dirname(os.path.abspath(__file__))
@@ -81,8 +81,8 @@ def main():
     train_ds = CarDataset(train_df, TRAIN_DIR, transform=get_transforms(augment=True,img_h=IMG_H, img_w=IMG_W))
     val_ds   = CarDataset(val_df,   TRAIN_DIR, transform=get_transforms(augment=False,img_h=IMG_H, img_w=IMG_W))
 
-    train_loader = DataLoader(train_ds, batch_size=BATCH_SIZE, shuffle=True,  num_workers=0, pin_memory=False)
-    val_loader   = DataLoader(val_ds,   batch_size=BATCH_SIZE, shuffle=False, num_workers=0, pin_memory=False)
+    train_loader = DataLoader(train_ds, batch_size=BATCH_SIZE, shuffle=True,  num_workers=2, pin_memory=True)
+    val_loader   = DataLoader(val_ds,   batch_size=BATCH_SIZE, shuffle=False, num_workers=2, pin_memory=True)
     print('Data loaders ready!')
 
  
@@ -142,7 +142,7 @@ def main():
     test_ids    = sorted([int(f.stem) for f in Path(TEST_DIR).glob('*.png')])
     test_df     = pd.DataFrame({'image_id': test_ids})
     test_ds     = CarDataset(test_df, TEST_DIR, transform=get_transforms(augment=False,img_h=IMG_H, img_w=IMG_W), is_test=True)
-    test_loader = DataLoader(test_ds, batch_size=BATCH_SIZE, shuffle=False, num_workers=0)
+    test_loader = DataLoader(test_ds, batch_size=BATCH_SIZE, shuffle=False, num_workers=2)
 
     results = []
     with torch.no_grad():
