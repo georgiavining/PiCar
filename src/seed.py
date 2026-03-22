@@ -1,6 +1,6 @@
-import random, numpy as np, tensorflow as tf
+import random, numpy as np, torch
 
 def set_seed(seed):
     random.seed(seed)
     np.random.seed(seed)
-    tf.random.set_seed(seed)
+    torch.manual_seed(seed)

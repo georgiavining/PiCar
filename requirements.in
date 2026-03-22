@@ -1,7 +1,9 @@
-tensorflow
-numpy
+torch
+torchvision
 pandas
-opencv-python
-matplotlib
+numpy
+pillow
 scikit-learn
-wandb
+tqdm
+setuptools
+matplotlib

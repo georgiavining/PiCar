@@ -1,7 +1,30 @@
+# virtual environment
+kaggle_env/
+
+# compiled requirements
+requirements.txt
+
+# model weights
+*.pth
+*.pt
+
+# python
 __pycache__/
 *.pyc
 *.pyo
-*.pyd
 
-*.tmp.drivedownload
-*.tmp.driveupload
+# jupyter
+.ipynb_checkpoints/
+
+# tensorboard
+runs/
+
+# outputs
+outputs/
+
+# data
+data/
+
+# os
+.DS_Store
+Thumbs.db
