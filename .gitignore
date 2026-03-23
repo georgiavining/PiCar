@@ -19,12 +19,13 @@ __pycache__/
 # tensorboard
 runs/
 
-# outputs
-outputs/
-
 # data
 data/
 
 # os
 .DS_Store
 Thumbs.db
+
+#mlis machine training logs
+.profile
+*.log

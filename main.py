@@ -29,7 +29,7 @@ WEIGHT_DECAY = 1e-3
 PATIENCE     = 10
 DROPOUT_FIRST_LAYER = 0.4
 DROPOUT_SECOND_LAYER = 0.3
-RUN_NAME = "mobilenet_v3_higher_dropout"
+RUN_NAME = "mobilenet_v3_dropout_04_03"
 DEVICE       = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 #--Paths----------------------------------------------------------------------------
@@ -49,6 +49,7 @@ TRAINING_CURVE_PATH = os.path.join(TRAINING_CURVE_DIR, RUN_NAME + '_training_cur
 
 os.makedirs(MODELS_DIR, exist_ok=True)
 os.makedirs(PREDICTIONS_DIR, exist_ok=True)
+os.makedirs(TRAINING_CURVE_DIR, exist_ok=True)
 
 #--Main------------------------------------------------------------------------------
 def main():
@@ -88,7 +89,7 @@ def main():
  
     # ── Model ────────────────────────────────────────────────────────────────
  
-    model     = PiCarNet(pretrained=True).to(DEVICE)
+    model = PiCarNet(pretrained=True,dropout_rate_first=DROPOUT_FIRST_LAYER,dropout_rate_second=DROPOUT_SECOND_LAYER).to(DEVICE)
     optimiser = optim.AdamW(model.parameters(), lr=LR, weight_decay=WEIGHT_DECAY)
     scheduler = optim.lr_scheduler.CosineAnnealingLR(optimiser, T_max=EPOCHS)
     scaler    = torch.amp.GradScaler(enabled=(DEVICE.type == 'cuda'))
@@ -133,7 +134,7 @@ def main():
     plt.title('Training Curve')
     plt.legend()
     plt.savefig(TRAINING_CURVE_PATH)
-    plt.show()
+    plt.close()
 
     # ── Inference ──────────────────────────────────────────────────────────────
     model.load_state_dict(torch.load(MODEL_PATH, map_location=DEVICE))
@@ -159,6 +160,7 @@ def main():
     sub = pd.DataFrame(results).sort_values('image_id')
     sub.to_csv(PREDICTIONS_PATH, index=False)
     print(f'Submission saved to {PREDICTIONS_PATH} ({len(sub)} rows)')
- 
+
+
 if __name__ == "__main__":
     main()
