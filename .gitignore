@@ -19,8 +19,8 @@ __pycache__/
 # tensorboard
 runs/
 
-# outputs
-outputs/
+#notebooks
+notebooks/
 
 # data
 data/
@@ -28,3 +28,7 @@ data/
 # os
 .DS_Store
 Thumbs.db
+
+#mlis machine training logs
+.profile
+*.log
