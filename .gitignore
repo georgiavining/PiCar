@@ -19,9 +19,6 @@ __pycache__/
 # tensorboard
 runs/
 
-#notebooks
-notebooks/
-
 # data
 data/
 
