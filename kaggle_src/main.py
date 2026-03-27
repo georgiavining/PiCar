@@ -11,17 +11,17 @@ import torch.optim as optim
 from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms, models
 from sklearn.model_selection import train_test_split
-from kaggle_src.data import scan_valid_images, get_transforms, CarDataset
-from kaggle_src.seed import set_seed
-from kaggle_src.model import PiCarNet
-from kaggle_src.train import train_one_epoch, evaluate
+from data import scan_valid_images, get_transforms, CarDataset
+from seed import set_seed
+from model import PiCarNet
+from train import train_one_epoch, evaluate
 
 
 #--Config----------------------------------------------------------------------------
 
 SEED         = 42
 IMG_H        = 120
-IMG_W        = 160
+IMG_W        = 160 
 BATCH_SIZE   = 32
 EPOCHS       = 60
 LR           = 1e-3
@@ -29,7 +29,7 @@ WEIGHT_DECAY = 1e-3
 PATIENCE     = 10
 DROPOUT_FIRST_LAYER = 0.4
 DROPOUT_SECOND_LAYER = 0.3
-RUN_NAME = "mobilenet_v3_dropout_04_03"
+RUN_NAME = "mobilenet1"
 DEVICE       = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 #--Paths----------------------------------------------------------------------------

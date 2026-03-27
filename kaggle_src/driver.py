@@ -3,7 +3,7 @@ import torch.nn as nn
 import torchvision.models as models
 import torchvision.transforms as transforms
 import os
-from kaggle_src.model import PiCarNet
+from model import PiCarNet
 
 class Model:
     def __init__(self):
