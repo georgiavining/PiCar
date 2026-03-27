@@ -11,10 +11,10 @@ import torch.optim as optim
 from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms, models
 from sklearn.model_selection import train_test_split
-from src.data import scan_valid_images, get_transforms, CarDataset
-from src.seed import set_seed
-from src.model import PiCarNet
-from src.train import train_one_epoch, evaluate
+from kaggle_src.data import scan_valid_images, get_transforms, CarDataset
+from kaggle_src.seed import set_seed
+from kaggle_src.model import PiCarNet
+from kaggle_src.train import train_one_epoch, evaluate
 
 
 #--Config----------------------------------------------------------------------------
@@ -39,7 +39,7 @@ DATA_PATH         = os.path.join(BASE_DIR, "data")
 TRAIN_CSV         = os.path.join(DATA_PATH, "train.csv")
 TRAIN_DIR      = os.path.join(DATA_PATH, "training_images")
 TEST_DIR       = os.path.join(DATA_PATH, "test_images")
-OUTPUTS_PATH    = os.path.join(BASE_DIR, "outputs")
+OUTPUTS_PATH    = os.path.join(BASE_DIR, "kaggle_outputs")
 MODELS_DIR = os.path.join(OUTPUTS_PATH, "models")
 MODEL_PATH = os.path.join(MODELS_DIR, RUN_NAME+"_best_model.pth")
 PREDICTIONS_DIR = os.path.join(OUTPUTS_PATH, "predictions")
@@ -135,31 +135,6 @@ def main():
     plt.legend()
     plt.savefig(TRAINING_CURVE_PATH)
     plt.close()
-
-    # ── Inference ──────────────────────────────────────────────────────────────
-    model.load_state_dict(torch.load(MODEL_PATH, map_location=DEVICE))
-    model.eval()
-
-    test_ids    = sorted([int(f.stem) for f in Path(TEST_DIR).glob('*.png')])
-    test_df     = pd.DataFrame({'image_id': test_ids})
-    test_ds     = CarDataset(test_df, TEST_DIR, transform=get_transforms(augment=False,img_h=IMG_H, img_w=IMG_W), is_test=True)
-    test_loader = DataLoader(test_ds, batch_size=BATCH_SIZE, shuffle=False, num_workers=2)
-
-    results = []
-    with torch.no_grad():
-        for imgs, ids in tqdm(test_loader, desc='Inference'):
-            imgs  = imgs.to(DEVICE)
-            preds = model(imgs).cpu().numpy()
-            for img_id, pred in zip(ids.numpy(), preds):
-                results.append({
-                    'image_id': int(img_id),
-                    'angle':    float(np.clip(pred[0], 0, 1)),
-                    'speed':    float(np.clip(pred[1], 0, 1)),
-                })
-
-    sub = pd.DataFrame(results).sort_values('image_id')
-    sub.to_csv(PREDICTIONS_PATH, index=False)
-    print(f'Submission saved to {PREDICTIONS_PATH} ({len(sub)} rows)')
 
 
 if __name__ == "__main__":

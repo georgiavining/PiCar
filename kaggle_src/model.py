@@ -22,3 +22,4 @@ class PiCarNet(nn.Module):
 
     def forward(self, x):
         return self.head(self.backbone(x))
+
