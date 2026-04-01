@@ -25,21 +25,20 @@ DROPOUT_SECOND = 0.15
 RUN_NAME       = "effb2_angle_run1"
 
 # ── Paths ─────────────────────────────────────────────────────────────────────
-BASE_DIR            = os.path.dirname(os.path.abspath(__file__))
-DATA_PATH           = os.path.join(BASE_DIR, "data")
+CODE_DIR            = os.path.dirname(os.path.abspath(__file__))          
+MODEL_DIR           = os.path.dirname(CODE_DIR)                          
+REPO_DIR            = os.path.dirname(os.path.dirname(MODEL_DIR))        
+
+DATA_PATH           = os.path.join(REPO_DIR, "kaggle_data")               
 TRAIN_CSV           = os.path.join(DATA_PATH, "train.csv")
-TRAIN_DIR           = os.path.join(DATA_PATH, "training_images")
-TEST_DIR            = os.path.join(DATA_PATH, "test_images")
-OUTPUTS_PATH        = os.path.join(BASE_DIR, "outputs")
-MODELS_DIR          = os.path.join(OUTPUTS_PATH, "models")
-MODEL_PATH          = os.path.join(MODELS_DIR, RUN_NAME + "_best_model.weights.h5")
-PREDICTIONS_DIR     = os.path.join(OUTPUTS_PATH, "predictions")
-PREDICTIONS_PATH    = os.path.join(PREDICTIONS_DIR, RUN_NAME + ".csv")
+TRAIN_DIR           = os.path.join(DATA_PATH, "training_images")               
+OUTPUTS_PATH        = os.path.join(MODEL_DIR, "outputs") 
+WEIGHTS_DIR         = os.path.join(OUTPUTS_PATH, "weights")      
+MODEL_PATH          = os.path.join(WEIGHTS_DIR, RUN_NAME + "_best_model.weights.h5")            
 TRAINING_CURVE_DIR  = os.path.join(OUTPUTS_PATH, "training_curves")
 TRAINING_CURVE_PATH = os.path.join(TRAINING_CURVE_DIR, RUN_NAME + "_training_curve.png")
 
-os.makedirs(MODELS_DIR, exist_ok=True)
-os.makedirs(PREDICTIONS_DIR, exist_ok=True)
+os.makedirs(WEIGHTS_DIR, exist_ok=True)
 os.makedirs(TRAINING_CURVE_DIR, exist_ok=True)
 
 
