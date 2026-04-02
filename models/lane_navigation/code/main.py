@@ -17,7 +17,7 @@ from train import train_one_epoch, evaluate
 SEED           = 42
 IMG_H          = 260
 IMG_W          = 260
-BATCH_SIZE     = 32
+BATCH_SIZE     = 8
 EPOCHS         = 60
 LR             = 2e-4
 PATIENCE       = 12
@@ -30,7 +30,7 @@ CODE_DIR            = os.path.dirname(os.path.abspath(__file__))
 MODEL_DIR           = os.path.dirname(CODE_DIR)                          
 REPO_DIR            = os.path.dirname(os.path.dirname(MODEL_DIR))        
 
-DATA_PATH           = os.path.join(REPO_DIR, "kaggle_data")               
+DATA_PATH           = os.path.join(REPO_DIR, "data")               
 TRAIN_CSV           = os.path.join(DATA_PATH, "train.csv")
 TRAIN_DIR           = os.path.join(DATA_PATH, "training_images")               
 OUTPUTS_PATH        = os.path.join(MODEL_DIR, "outputs") 
@@ -70,16 +70,17 @@ def main():
     df = df[df['image_id'].isin(available_ids)].reset_index(drop=True)
     print(f"Filtered to {len(df)} rows with available images")
 
-    train_df, val_df = train_test_split(df, test_size=0.15, random_state=SEED,shuffle=True)
+    train_df, val_df = train_test_split(df, test_size=0.15, random_state=SEED, shuffle=True)
     print(f"Train: {len(train_df)}   Val: {len(val_df)}")
 
-    train_ds = make_tf_dataset(train_df, TRAIN_DIR, BATCH_SIZE, is_training=True,  resize=(IMG_W, IMG_H))
-    val_ds   = make_tf_dataset(val_df,   TRAIN_DIR, BATCH_SIZE, is_training=False, resize=(IMG_W, IMG_H))
+    train_ds = make_tf_dataset(train_df, TRAIN_DIR, BATCH_SIZE, is_training=True,  resize=(IMG_H, IMG_W))
+    val_ds   = make_tf_dataset(val_df,   TRAIN_DIR, BATCH_SIZE, is_training=False, resize=(IMG_H, IMG_W))
+
+    steps_per_epoch = len(train_df) // BATCH_SIZE
 
     # ── Model ─────────────────────────────────────────────────────────────────
     model     = PiCarNet(image_h=IMG_H, image_w=IMG_W,
                          dropout_first=DROPOUT_FIRST, dropout_second=DROPOUT_SECOND)
-    steps_per_epoch  = len(train_df) // BATCH_SIZE
     scheduler = tf.keras.optimizers.schedules.CosineDecay(
                     initial_learning_rate=LR,
                     decay_steps=EPOCHS * steps_per_epoch,
@@ -94,7 +95,6 @@ def main():
     for epoch in range(1, EPOCHS + 1):
         train_loss = train_one_epoch(model, train_ds, optimiser)
         val_loss   = evaluate(model, val_ds)
-
         train_losses.append(train_loss)
         val_losses.append(val_loss)
 

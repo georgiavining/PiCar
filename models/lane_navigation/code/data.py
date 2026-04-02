@@ -1,9 +1,11 @@
 import random
 import numpy as np
+import cv2
 from pathlib import Path
 from PIL import Image
 import pandas as pd
 import tensorflow as tf
+
 
 def scan_valid_images(df, img_dir):
     img_dir   = Path(img_dir)
@@ -21,50 +23,65 @@ def scan_valid_images(df, img_dir):
     print(f"Image scan complete: {len(df)}/{before} valid")
     return df
 
-def load_and_process(path, angle, resize):
-    img = tf.io.read_file(path)
-    img = tf.image.decode_png(img, channels=3)
-    h   = tf.shape(img)[0]
-    img = img[h//3:, :, :]
-    img = tf.image.resize(img, resize)
-    img = tf.cast(img, tf.float32)
-    return img, angle
 
-def zoom(img, factor=0.3):
-    img = tf.keras.layers.RandomZoom(
-        height_factor=(-factor, 0.0),  
-        fill_mode='nearest'
-    )(img[tf.newaxis, ...])[0]
-    return img
-
-def pan(img, height_factor=0.1, width_factor=0.1):
-    img = tf.keras.layers.RandomTranslation(
-        height_factor=height_factor, width_factor=width_factor,
-        fill_mode='nearest'
-    )(img[tf.newaxis, ...])[0]
-    return img
-
-def adjust_brightness(img, max_delta=50.0):
-    img = tf.image.random_brightness(img, max_delta=max_delta)
-    img = tf.clip_by_value(img, 0, 255)
-    return img
-
-def flip(img, angle):
-    img   = tf.image.flip_left_right(img)
-    angle = 1.0 - angle
-    return img, angle
+def my_imread(image_path):
+    image = cv2.imread(image_path)
+    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+    return image
 
 
-def random_augment(img, angle):
+def zoom(image, scale=1.3):
+    h, w = image.shape[:2]
+    new_h, new_w = int(h / scale), int(w / scale)
+    top  = (h - new_h) // 2
+    left = (w - new_w) // 2
+    cropped = image[top:top+new_h, left:left+new_w]
+    return cv2.resize(cropped, (w, h))
+
+
+def pan(image, x_range=(-0.1, 0.1), y_range=(-0.1, 0.1)):
+    h, w = image.shape[:2]
+    x_shift = int(w * np.random.uniform(*x_range))
+    y_shift = int(h * np.random.uniform(*y_range))
+    M = np.float32([[1, 0, x_shift], [0, 1, y_shift]])
+    return cv2.warpAffine(image, M, (w, h))
+
+
+def adjust_brightness(image, low=0.5, high=1.5):
+    hsv = cv2.cvtColor(image, cv2.COLOR_RGB2HSV).astype(np.float32)
+    hsv[:, :, 2] *= np.random.uniform(low, high)
+    hsv[:, :, 2] = np.clip(hsv[:, :, 2], 0, 255)
+    return cv2.cvtColor(hsv.astype(np.uint8), cv2.COLOR_HSV2RGB)
+
+
+def flip(image, angle):
+    return cv2.flip(image, 1), 1.0 - angle
+
+
+def blur(image):
+    kernel_size = random.randint(1, 5)
+    return cv2.blur(image, (kernel_size, kernel_size))
+
+
+def random_augment(image, angle):
     if np.random.rand() < 0.5:
-        img = pan(img)
+        image = pan(image)
     if np.random.rand() < 0.5:
-        img = adjust_brightness(img)
+        image = zoom(image)
     if np.random.rand() < 0.5:
-        img = zoom(img)
+        image = blur(image)
     if np.random.rand() < 0.5:
-        img, angle = flip(img, angle)
-    return img, angle
+        image = adjust_brightness(image)
+    if np.random.rand() < 0.5:
+        image, angle = flip(image, angle)
+    return image, angle
+
+
+def preprocess(image, resize):
+    h = image.shape[0]
+    image = image[int(h/2):, :, :]
+    image = cv2.resize(image, resize)
+    return image
 
 
 def make_tf_dataset(df, img_dir, batch_size, is_training, resize):
@@ -72,20 +89,26 @@ def make_tf_dataset(df, img_dir, batch_size, is_training, resize):
     image_paths = [str(img_dir / f"{int(iid)}.png") for iid in df['image_id']]
     angles      = df['angle'].values.astype(np.float32)
 
-    path_ds = tf.data.Dataset.from_tensor_slices((image_paths, angles))
+    def load_and_process(path, angle):
+        img = tf.io.read_file(path)
+        img = tf.image.decode_png(img, channels=3)
+        img_h = tf.shape(img)[0]
+        img = img[img_h//2:, :, :]                    
+        img = tf.image.resize(img, resize)
+        img = tf.cast(img, tf.float32)
 
+        if is_training:
+            img = tf.image.random_brightness(img, max_delta=0.3)
+            img = tf.image.random_contrast(img, lower=0.7, upper=1.3)
+            img = tf.image.random_saturation(img, lower=0.8, upper=1.2)
+            img = tf.clip_by_value(img, 0, 255)
+
+        return img, angle
+
+    ds = tf.data.Dataset.from_tensor_slices((image_paths, angles))
     if is_training:
-        path_ds = path_ds.shuffle(buffer_size=len(df), reshuffle_each_iteration=True)
-
-    ds = path_ds.map(
-        lambda path, angle: load_and_process(path, angle, resize),
-        num_parallel_calls=tf.data.AUTOTUNE
-    )
-    ds = ds.cache()
-
-    if is_training:
-        ds = ds.map(random_augment, num_parallel_calls=tf.data.AUTOTUNE)
-
-    ds = ds.batch(batch_size, drop_remainder=True)
+        ds = ds.shuffle(buffer_size=len(df), reshuffle_each_iteration=True)
+    ds = ds.map(load_and_process, num_parallel_calls=tf.data.AUTOTUNE)
+    ds = ds.batch(batch_size)
     ds = ds.prefetch(tf.data.AUTOTUNE)
     return ds
