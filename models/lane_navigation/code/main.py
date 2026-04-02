@@ -1,4 +1,5 @@
 import os
+os.environ['CUDA_VISIBLE_DEVICES'] = '1'
 import random
 import pandas as pd
 import numpy as np
@@ -9,7 +10,7 @@ from sklearn.model_selection import train_test_split
 from tqdm import tqdm
 
 from lane_model import PiCarNet
-from data import scan_valid_images, image_data_generator
+from data import scan_valid_images, make_tf_dataset
 from train import train_one_epoch, evaluate
 
 # ── Config ────────────────────────────────────────────────────────────────────
@@ -69,18 +70,16 @@ def main():
     df = df[df['image_id'].isin(available_ids)].reset_index(drop=True)
     print(f"Filtered to {len(df)} rows with available images")
 
-    train_df, val_df = train_test_split(df, test_size=0.15, random_state=SEED, shuffle=True)
+    train_df, val_df = train_test_split(df, test_size=0.15, random_state=SEED,shuffle=True)
     print(f"Train: {len(train_df)}   Val: {len(val_df)}")
 
-    train_gen = image_data_generator(train_df, TRAIN_DIR, BATCH_SIZE, is_training=True,  resize=(IMG_W, IMG_H))
-    val_gen   = image_data_generator(val_df,   TRAIN_DIR, BATCH_SIZE, is_training=False, resize=(IMG_W, IMG_H))
-
-    steps_per_epoch  = len(train_df) // BATCH_SIZE
-    validation_steps = len(val_df)   // BATCH_SIZE
+    train_ds = make_tf_dataset(train_df, TRAIN_DIR, BATCH_SIZE, is_training=True,  resize=(IMG_W, IMG_H))
+    val_ds   = make_tf_dataset(val_df,   TRAIN_DIR, BATCH_SIZE, is_training=False, resize=(IMG_W, IMG_H))
 
     # ── Model ─────────────────────────────────────────────────────────────────
     model     = PiCarNet(image_h=IMG_H, image_w=IMG_W,
                          dropout_first=DROPOUT_FIRST, dropout_second=DROPOUT_SECOND)
+    steps_per_epoch  = len(train_df) // BATCH_SIZE
     scheduler = tf.keras.optimizers.schedules.CosineDecay(
                     initial_learning_rate=LR,
                     decay_steps=EPOCHS * steps_per_epoch,
@@ -93,8 +92,8 @@ def main():
     no_improve = 0
 
     for epoch in range(1, EPOCHS + 1):
-        train_loss = train_one_epoch(model, train_gen, optimiser, steps_per_epoch)
-        val_loss   = evaluate(model, val_gen, validation_steps)
+        train_loss = train_one_epoch(model, train_ds, optimiser)
+        val_loss   = evaluate(model, val_ds)
 
         train_losses.append(train_loss)
         val_losses.append(val_loss)
