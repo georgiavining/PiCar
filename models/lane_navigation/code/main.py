@@ -1,4 +1,5 @@
 import os, random, datetime
+os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
 import numpy as np
 import pandas as pd
 
@@ -13,9 +14,9 @@ from tensorflow.keras import layers
 from tensorflow.keras import mixed_precision
 from sklearn.model_selection import train_test_split
 
-from data import scan_valid_images, augment, make_tf_dataset
+from data import scan_valid_images, make_tf_dataset
 from seed import set_seed
-from model import create_efficientnet_model
+from model import create_efficientnet_model, create_mv3_model
 
 #--Paths----------------------------------------------------------------------------
 CODE_DIR = Path(__file__).resolve().parent
@@ -36,7 +37,7 @@ WIDTH = 224
 BATCH_SIZE = 32
 LR = 1e-4
 PATIENCE=10
-RUN_NAME = "efb0_run2"
+RUN_NAME = "mv3_run5_augment"
 SEED = 42
 
 #--Main------------------------------------------------------------------------------
@@ -57,7 +58,6 @@ def main():
         print(f"Saved valid image cache to {CACHE_DIR}")
     else:
         df = pd.read_csv(CACHE_DIR)
-        df = scan_valid_images(df, TRAIN_DIR)
 
     train_df, val_df = train_test_split(df, test_size=0.15, random_state=SEED)
 
@@ -68,7 +68,7 @@ def main():
     print(f"Validation dataset: {len(val_df)} samples")
 
     # ── Model ─────────────────────────────────────────────────────────────────
-    model = create_efficientnet_model(input_shape=(HEIGHT, WIDTH, 3))
+    model = create_mv3_model(input_shape=(HEIGHT, WIDTH, 3))
 
     model.compile(
         optimizer=tf.keras.optimizers.Adam(learning_rate=LR),
@@ -92,15 +92,13 @@ def main():
 
     reduce_lr = tf.keras.callbacks.ReduceLROnPlateau(
         monitor="val_loss",
-        factor=0.2,
-        patience=2,
+        factor=0.5,
+        patience=5,
         verbose=1,
-        min_lr=1e-7
+        min_lr=1e-6
         )
 
     # ── Train ─────────────────────────────────────────────────────────────────
-    tf.get_logger().setLevel('ERROR')
-
     history = model.fit(
         train_ds,
         validation_data=val_ds,
@@ -117,3 +115,6 @@ def main():
     plt.legend()
     plt.savefig(TRAINING_CURVE_DIR / f"{RUN_NAME}_training_curve.png")
     print(f"Training complete! Best model saved to {WEIGHTS_DIR / f'{RUN_NAME}_best_model.h5'}")
+
+if __name__ == "__main__":
+    main()

@@ -31,3 +31,9 @@ Thumbs.db
 #mlis machine training logs
 .profile
 *.log
+
+#model weights
+*.h5
+
+# except 
+!models/lane_navigation/outputs/weights/mv3_run1_best_model.h5
