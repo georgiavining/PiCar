@@ -54,7 +54,7 @@ def pan(img, height_factor=0.1, width_factor=0.1):
     return img
 
 
-def adjust_brightness(img, max_delta=50.0):
+def adjust_brightness(img, max_delta=0.2):
     img = tf.image.random_brightness(img, max_delta=max_delta)
     img = tf.clip_by_value(img, 0, 255)
     return img
@@ -75,10 +75,6 @@ def augment(img, angle):
     if tf.random.uniform(()) < 0.5:
         img = adjust_brightness(img)
 
-    if tf.random.uniform(()) < 0.3:  
-        img = blur(img)
-
-    img = tf.clip_by_value(img, 0, 255)
     return img, angle
 
 def load_and_process(path, angle, resize, preprocess_fn=None):

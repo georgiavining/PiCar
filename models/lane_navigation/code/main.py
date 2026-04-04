@@ -16,7 +16,7 @@ from sklearn.model_selection import train_test_split
 
 from data import scan_valid_images, make_tf_dataset
 from seed import set_seed
-from model import create_efficientnet_model, create_mv3_model
+from model import create_mv3_model
 
 #--Paths----------------------------------------------------------------------------
 CODE_DIR = Path(__file__).resolve().parent
@@ -37,7 +37,7 @@ WIDTH = 224
 BATCH_SIZE = 32
 LR = 1e-4
 PATIENCE=10
-RUN_NAME = "mv3_run5_augment"
+RUN_NAME = "mv3_run7"
 SEED = 42
 
 #--Main------------------------------------------------------------------------------
@@ -61,10 +61,11 @@ def main():
 
     train_df, val_df = train_test_split(df, test_size=0.15, random_state=SEED)
 
-    train_ds = make_tf_dataset(train_df, TRAIN_DIR, BATCH_SIZE, is_training=True, resize=(HEIGHT, WIDTH))
+    from tensorflow.keras.applications.mobilenet_v3 import preprocess_input as mv3_preprocess
+    train_ds = make_tf_dataset(train_df, TRAIN_DIR, BATCH_SIZE, is_training=True, resize=(HEIGHT, WIDTH), preprocess_fn=mv3_preprocess)
     print(f"Training dataset: {len(train_df)} samples")
 
-    val_ds   = make_tf_dataset(val_df, TRAIN_DIR, BATCH_SIZE, is_training=False, resize=(HEIGHT, WIDTH))
+    val_ds   = make_tf_dataset(val_df, TRAIN_DIR, BATCH_SIZE, is_training=False, resize=(HEIGHT, WIDTH),  preprocess_fn=mv3_preprocess)
     print(f"Validation dataset: {len(val_df)} samples")
 
     # ── Model ─────────────────────────────────────────────────────────────────
