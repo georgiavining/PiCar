@@ -71,16 +71,15 @@ def blur(img, kernel_size=3):
 def augment(img, angle):
     if tf.random.uniform(()) < 0.5:
         img, angle = flip(img, angle)
-
     if tf.random.uniform(()) < 0.5:
         img = adjust_brightness(img)
-
     return img, angle
+
 
 def load_and_process(path, angle, resize, preprocess_fn=None):
     img = tf.io.read_file(path)
     img = tf.image.decode_png(img, channels=3)
-    h   = tf.shape(img)[0]
+    h = tf.shape(img)[0]
     img = img[h//2:, :, :]
     img = tf.image.resize(img, resize)
     img = tf.cast(img, tf.float32)
