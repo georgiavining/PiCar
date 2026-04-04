@@ -12,9 +12,26 @@ class LaneModel:
     def __init__(self):
         code_dir    = os.path.dirname(os.path.abspath(__file__))
         weights_path = os.path.join(code_dir, '..', 'outputs', 'weights', self.saved_model)
-        self.model = tf.keras.models.load_model(weights_path)
+        self.model = self._build_model()
+        self.model.load_weights(weights_path)
         self.model.trainable = False
         print(f"Lane model loaded from {weights_path}")
+
+    def _build_model(self, input_shape=(224, 224, 3)):
+        base_model = tf.keras.applications.MobileNetV3Small(
+            include_top=False,
+            weights=None,           
+            input_shape=input_shape,
+            pooling='avg'
+        )
+        base_model.trainable = True
+        inputs  = tf.keras.layers.Input(shape=input_shape)
+        x       = base_model(inputs, training=False)
+        x       = tf.keras.layers.Dropout(0.3)(x)
+        x       = tf.keras.layers.Dense(128, activation='relu')(x)
+        x       = tf.keras.layers.Dropout(0.2)(x)
+        outputs = tf.keras.layers.Dense(1, activation='sigmoid')(x)
+        return tf.keras.Model(inputs, outputs)
 
     def preprocess(self, image):
         image = tf.convert_to_tensor(image, dtype=tf.uint8)  
