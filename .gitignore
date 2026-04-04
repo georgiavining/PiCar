@@ -40,3 +40,6 @@ Thumbs.db
 
 #object detection model weights
 *.pt
+
+# except
+!models/object_detection/outputs/weights/best_model.pt

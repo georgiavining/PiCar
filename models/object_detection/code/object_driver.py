@@ -3,7 +3,7 @@ import numpy as np
 from ultralytics import YOLO
 
 class ObjectDetectionModel:
-    saved_model = 'best.pt'
+    saved_model = 'best_model.pt'
     classes = ['left_turn_sign', 'right_turn_sign', 'pedestrian', 'obstacle']
     conf_threshold = 0.4
 
