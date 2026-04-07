@@ -18,7 +18,7 @@ class Driver:
         self.lane_model   = LaneModel()
         self.object_model = ObjectDetectionModel()
 
-    def is_close(self, bbox, image_shape, threshold=0.15):
+    def is_close(self, bbox, image_shape, threshold=0.05):
         """
         Check if detected object is close enough to act on.
         Uses bounding box area as proxy for distance.
