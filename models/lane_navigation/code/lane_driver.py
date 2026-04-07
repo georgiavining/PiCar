@@ -3,16 +3,14 @@ import sys
 import numpy as np
 import tensorflow as tf
 
-
-
 class LaneModel:
-    saved_model = 'mv3_run7_best_model.h5'
+    saved_model  = 'mv3_run7_best_model.h5'
     resize_shape = (224, 224)
 
     def __init__(self):
-        code_dir    = os.path.dirname(os.path.abspath(__file__))
+        code_dir     = os.path.dirname(os.path.abspath(__file__))
         weights_path = os.path.join(code_dir, '..', 'outputs', 'weights', self.saved_model)
-        self.model = self._build_model()
+        self.model   = self._build_model()
         self.model.load_weights(weights_path)
         self.model.trainable = False
         print(f"Lane model loaded from {weights_path}")
@@ -20,7 +18,7 @@ class LaneModel:
     def _build_model(self, input_shape=(224, 224, 3)):
         base_model = tf.keras.applications.MobileNetV3Small(
             include_top=False,
-            weights=None,           
+            weights=None,
             input_shape=input_shape,
             pooling='avg'
         )
@@ -34,18 +32,18 @@ class LaneModel:
         return tf.keras.Model(inputs, outputs)
 
     def preprocess(self, image):
-        image = tf.convert_to_tensor(image, dtype=tf.uint8)  
+        image = tf.convert_to_tensor(image, dtype=tf.uint8)
         image = image[:, :, ::-1]
-        h= tf.shape(image)[0]
-        image = image[h//2:, :, :]                            
+        h     = tf.shape(image)[0]
+        image = image[h//2:, :, :]
         image = tf.image.resize(image, self.resize_shape)
         image = tf.cast(image, tf.float32)
         image = tf.expand_dims(image, axis=0)
         return image
 
     def predict(self, image):
-        img      = self.preprocess(image)
+        img        = self.preprocess(image)
         angle_norm = float(self.model(img, training=False).numpy()[0][0])
-        angle    = angle_norm * 80 + 50         
-        speed    = 35                           
+        angle      = angle_norm * 80 + 50
+        speed      = 35
         return angle, speed
