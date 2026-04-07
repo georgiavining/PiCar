@@ -18,7 +18,7 @@ class Driver:
         self.lane_model   = LaneModel()
         self.object_model = ObjectDetectionModel()
 
-    def is_close(self, bbox, image_shape, threshold=0.15):
+    def is_close(self, bbox, image_shape, threshold=0.05):
         """
         Check if detected object is close enough to act on.
         Uses bounding box area as proxy for distance.
@@ -34,7 +34,6 @@ class Driver:
         """
         Check if object is in the road (centre) vs side.
         road_margin: fraction of image width considered 'in road'
-        e.g. 0.6 means middle 60% of image width
         """
         x1, y1, x2, y2 = bbox
         img_w   = image_shape[1]
@@ -47,19 +46,24 @@ class Driver:
         return left_bound < box_cx < right_bound
 
     def predict(self, image):
-        detections       = self.object_model.predict(image)
-        detected_classes = [d['class'] for d in detections
-                            if self.is_close(d['bbox'], image.shape)]
+        detections = self.object_model.predict(image)
 
-        if 'pedestrian' in detected_classes:
-            return 90, 0
+        for d in detections:
+            if not self.is_close(d['bbox'], image.shape):
+                continue                                    
 
-        if 'obstacle' in detected_classes:
-            return 90, 0
+            in_road = self.is_in_road(d['bbox'], image.shape)
 
-        if 'left_turn_sign' in detected_classes or 'right_turn_sign' in detected_classes:
+            if d['class'] == 'pedestrian' and in_road:
+                return 90, 0                                
+
+            if d['class'] == 'obstacle' and in_road:
+                return 90, 0                                
+
+        detected_close = [d['class'] for d in detections
+                        if self.is_close(d['bbox'], image.shape)]
+        if 'left_turn_sign' in detected_close or 'right_turn_sign' in detected_close:
             angle, _ = self.lane_model.predict(image)
             return angle, 20
 
-        angle, speed = self.lane_model.predict(image)
-        return angle, speed
+        return self.lane_model.predict(image)
