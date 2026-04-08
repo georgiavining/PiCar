@@ -13,7 +13,7 @@ from torchvision import transforms, models
 from sklearn.model_selection import train_test_split
 from data import scan_valid_images, get_transforms, CarDataset
 from seed import set_seed
-from model import PiCarNet
+from picarnet import PiCarNet
 from train import train_one_epoch, evaluate
 
 

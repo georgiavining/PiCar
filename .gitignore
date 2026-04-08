@@ -1,13 +1,11 @@
 # virtual environment
 kaggle_env/
-labelimg_env/
 
 # compiled requirements
 requirements.txt
 
-# model weights
+# kaggle model weights
 *.pth
-*.pt
 
 # python
 __pycache__/
@@ -17,12 +15,8 @@ __pycache__/
 # jupyter
 .ipynb_checkpoints/
 
-# tensorboard
-runs/
-
 # data
 data/
-kaggle_data/
 
 # os
 .DS_Store
