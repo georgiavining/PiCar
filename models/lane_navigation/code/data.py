@@ -68,32 +68,38 @@ def blur(img, kernel_size=3):
     return img
 
 
-def augment(img, angle):
+def augment(img, labels):
     if tf.random.uniform(()) < 0.5:
-        img, angle = flip(img, angle)
+        img      = tf.image.flip_left_right(img)
+        angle    = 1.0 - labels[0]
+        speed    = labels[1]
+        labels   = tf.stack([angle, speed])
     if tf.random.uniform(()) < 0.5:
-        img = adjust_brightness(img)
-    return img, angle
+        img = tf.image.random_brightness(img, max_delta=30.0)
+        img = tf.clip_by_value(img, 0, 255)
+    return img, labels
 
-
-def load_and_process(path, angle, resize, preprocess_fn=None):
+def load_and_process(path, labels, resize, preprocess_fn=None, crop=False):
     img = tf.io.read_file(path)
     img = tf.image.decode_png(img, channels=3)
-    h = tf.shape(img)[0]
-    img = img[h//2:, :, :]
+    if crop:
+        h = tf.shape(img)[0]
+        img = img[h//2:, :, :]
     img = tf.image.resize(img, resize)
     img = tf.cast(img, tf.float32)
     if preprocess_fn is not None:
         img = preprocess_fn(img)
     else:
         img = img / 255.0
-    return img, angle
+    return img, labels
 
 def make_tf_dataset(df, img_dir, batch_size, is_training, resize, preprocess_fn=None):
     img_dir = Path(img_dir)
 
     paths = [str(img_dir / f"{int(i)}.png") for i in df['image_id']]
     angles = df['angle'].values.astype(np.float32)
+    speeds = df['speed'].values.astype(np.float32)
+    labels  = np.stack([angles, speeds], axis=1)
 
     ds = tf.data.Dataset.from_tensor_slices((paths, angles))
 

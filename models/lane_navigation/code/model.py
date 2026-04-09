@@ -15,5 +15,5 @@ def create_mv3_model(input_shape=(224, 224, 3)):
     x       = layers.Dropout(0.3)(x)
     x       = layers.Dense(128, activation='relu')(x)
     x       = layers.Dropout(0.2)(x)
-    outputs = layers.Dense(1, activation='sigmoid')(x)
+    outputs = layers.Dense(2, activation='sigmoid')(x)
     return tf.keras.Model(inputs, outputs)

@@ -37,11 +37,7 @@ WIDTH = 224
 BATCH_SIZE = 32
 LR = 1e-4
 PATIENCE=10
-<<<<<<< Updated upstream
-RUN_NAME = "mv3_run7"
-=======
-RUN_NAME = "mv3_run1"
->>>>>>> Stashed changes
+RUN_NAME = "mv3_angle_and_speed"
 SEED = 42
 
 #--Main------------------------------------------------------------------------------
