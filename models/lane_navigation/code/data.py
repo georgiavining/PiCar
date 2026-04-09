@@ -69,6 +69,8 @@ def blur(img, kernel_size=3):
 
 
 def augment(img, labels):
+    labels = tf.ensure_shape(labels, [2]) 
+
     if tf.random.uniform(()) < 0.5:
         img      = tf.image.flip_left_right(img)
         angle    = 1.0 - labels[0]
@@ -101,13 +103,13 @@ def make_tf_dataset(df, img_dir, batch_size, is_training, resize, preprocess_fn=
     speeds = df['speed'].values.astype(np.float32)
     labels  = np.stack([angles, speeds], axis=1)
 
-    ds = tf.data.Dataset.from_tensor_slices((paths, angles))
+    ds = tf.data.Dataset.from_tensor_slices((paths, labels))
 
     if is_training:
         ds = ds.shuffle(len(df))
 
     ds = ds.map(
-        lambda p, a: load_and_process(p, a, resize, preprocess_fn),
+        lambda p, l: load_and_process(p, l, resize, preprocess_fn),
         num_parallel_calls=tf.data.AUTOTUNE
     )
     ds = ds.cache()

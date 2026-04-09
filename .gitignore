@@ -30,7 +30,7 @@ Thumbs.db
 *.h5
 
 # except 
-!models/lane_navigation/outputs/weights/mv3_run7_best_model.h5
+!models/lane_navigation/outputs/weights/mv3_angle_and_speed_best_model.h5
 
 #object detection model weights
 *.pt
