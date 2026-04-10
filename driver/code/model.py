@@ -5,7 +5,7 @@ import tensorflow as tf
 from ultralytics import YOLO
 
 class LaneModel:
-    saved_model  = 'mv3_run7_best_model.h5'
+    saved_model  = 'mv3_angle_and_speed_best_model.h5'
     resize_shape = (224, 224)
 
     def __init__(self):
@@ -29,24 +29,22 @@ class LaneModel:
         x       = tf.keras.layers.Dropout(0.3)(x)
         x       = tf.keras.layers.Dense(128, activation='relu')(x)
         x       = tf.keras.layers.Dropout(0.2)(x)
-        outputs = tf.keras.layers.Dense(1, activation='sigmoid')(x)
+        outputs = tf.keras.layers.Dense(2, activation='sigmoid')(x)
         return tf.keras.Model(inputs, outputs)
 
     def preprocess(self, image):
         image = tf.convert_to_tensor(image, dtype=tf.uint8)
         image = image[:, :, ::-1]
-        h     = tf.shape(image)[0]
-        image = image[h//2:, :, :]
         image = tf.image.resize(image, self.resize_shape)
         image = tf.cast(image, tf.float32)
         image = tf.expand_dims(image, axis=0)
         return image
 
     def predict(self, image):
-        img        = self.preprocess(image)
-        angle_norm = float(self.model(img, training=False).numpy()[0][0])
-        angle      = angle_norm * 80 + 50
-        speed      = 35
+        img    = self.preprocess(image)
+        output = self.model(img, training=False).numpy()[0]
+        angle  = float(output[0]) * 80 + 50
+        speed  = round(float(output[1])) * 35  
         return angle, speed
 
 class ObjectDetectionModel:
