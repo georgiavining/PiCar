@@ -48,6 +48,7 @@ for img_path in image_paths:
 
 print(f"Found {len(stopping_images)} stopping images")
 
+stopping_images = stopping_images[:20]
 n     = len(stopping_images)
 ncols = 4
 nrows = math.ceil(n / ncols)

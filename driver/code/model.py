@@ -48,7 +48,7 @@ class LaneModel:
         return angle, speed
 
 class ObjectDetectionModel:
-    saved_model = 'run3_best_model.pt'
+    saved_model = 'run3_best.pt'
     classes = ['left_turn_sign', 'right_turn_sign', 'pedestrian', 'obstacle']
     conf_threshold = 0.4
 
@@ -90,12 +90,24 @@ class Model:
         self.lane_model   = LaneModel()
         self.object_model = ObjectDetectionModel()
 
-    def is_close(self, bbox, image_shape, threshold=0.05):
+    def is_close(self, bbox, image_shape, threshold=0.05, vertical_threshold=0.5):
+        """
+        Object is close if either:
+        - bbox area is large enough (close object)
+        - OR bbox bottom is in lower half of image (near object)
+        """
         x1, y1, x2, y2 = bbox
         img_h, img_w    = image_shape[:2]
-        img_area        = img_h * img_w
-        box_area        = (x2 - x1) * (y2 - y1)
-        return (box_area / img_area) > threshold
+        
+        # area check
+        img_area  = img_h * img_w
+        box_area  = (x2 - x1) * (y2 - y1)
+        area_frac = box_area / img_area
+        
+        # vertical position check — y2 is bottom of bbox
+        y2_frac = y2 / img_h  # 0=top, 1=bottom
+        
+        return (area_frac > threshold) or (y2_frac > vertical_threshold)
 
     def is_in_road(self, bbox, image_shape, road_margin=0.6):
         x1, y1, x2, y2 = bbox
