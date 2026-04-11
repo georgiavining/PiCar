@@ -90,7 +90,7 @@ class Model:
         self.lane_model   = LaneModel()
         self.object_model = ObjectDetectionModel()
 
-    def is_close(self, bbox, image_shape, threshold=0.05, vertical_threshold=0.5):
+    def is_close(self, bbox, image_shape, threshold=0.05, vertical_threshold=0.6):
         """
         Object is close if either:
         - bbox area is large enough (close object)
@@ -99,17 +99,15 @@ class Model:
         x1, y1, x2, y2 = bbox
         img_h, img_w    = image_shape[:2]
         
-        # area check
         img_area  = img_h * img_w
         box_area  = (x2 - x1) * (y2 - y1)
         area_frac = box_area / img_area
-        
-        # vertical position check — y2 is bottom of bbox
-        y2_frac = y2 / img_h  # 0=top, 1=bottom
+
+        y2_frac = y2 / img_h  
         
         return (area_frac > threshold) or (y2_frac > vertical_threshold)
 
-    def is_in_road(self, bbox, image_shape, road_margin=0.6):
+    def is_in_road(self, bbox, image_shape, road_margin=0.4):
         x1, y1, x2, y2 = bbox
         img_w           = image_shape[1]
         box_cx          = (x1 + x2) / 2
@@ -121,14 +119,25 @@ class Model:
     def _update_state(self, detections, image_shape):
         close = [d for d in detections if self.is_close(d['bbox'], image_shape)]
 
+        for d in close:
+            in_road  = self.is_in_road(d['bbox'], image_shape)
+            x1,y1,x2,y2 = d['bbox']
+            ih, iw   = image_shape[:2]
+            area_frac = (x2-x1)*(y2-y1) / (ih*iw)
+            y2_frac  = y2 / ih
+            print(f"  {d['class']} conf={d['confidence']:.2f} area={area_frac:.3f} y2={y2_frac:.2f} in_road={in_road}")
+
         if any(d['class'] in ('pedestrian', 'obstacle')
-               and self.is_in_road(d['bbox'], image_shape)
-               for d in close):
+            and self.is_in_road(d['bbox'], image_shape)
+            for d in close):
             self.state = CarState.STOPPING
+            print(f"  → STOPPING")
         elif any(d['class'] == 'left_turn_sign' for d in close):
             self.state = CarState.TURNING_LEFT
+            print(f"  → TURNING_LEFT")
         elif any(d['class'] == 'right_turn_sign' for d in close):
             self.state = CarState.TURNING_RIGHT
+            print(f"  → TURNING_RIGHT")
         else:
             self.state = CarState.LANE_FOLLOWING
 

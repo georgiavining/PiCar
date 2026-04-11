@@ -14,6 +14,8 @@ TEST_IMAGES_DIR = os.path.join(REPO_DIR, 'data', 'test_images')
 OUTPUT_DIR      = os.path.join(REPO_DIR, 'driver', 'outputs')
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
+RUN_NO = 5
+
 from model import Model
 driver = Model()
 
@@ -66,7 +68,7 @@ if n > 0:
         ax.axis('off')
 
     plt.tight_layout()
-    plt.savefig(os.path.join(OUTPUT_DIR, 'stopping_images.png'))
-    print(f"Saved to {OUTPUT_DIR}/stopping_images.png")
+    plt.savefig(os.path.join(OUTPUT_DIR, f'run{RUN_NO}_stopping_images.png'))
+    print(f'Saved to {OUTPUT_DIR}/run{RUN_NO}_stopping_images.png')
 else:
     print("No stopping images found — try lowering is_close threshold")
