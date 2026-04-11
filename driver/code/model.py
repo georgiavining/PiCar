@@ -90,7 +90,7 @@ class Model:
         self.lane_model   = LaneModel()
         self.object_model = ObjectDetectionModel()
 
-    def is_close(self, bbox, image_shape, threshold=0.05, vertical_threshold=0.6):
+    def is_close(self, bbox, image_shape, threshold=0.025, vertical_threshold=0.6):
         """
         Object is close if either:
         - bbox area is large enough (close object)
@@ -107,7 +107,7 @@ class Model:
         
         return (area_frac > threshold) or (y2_frac > vertical_threshold)
 
-    def is_in_road(self, bbox, image_shape, road_margin=0.4):
+    def is_in_road(self, bbox, image_shape, road_margin=0.3):
         x1, y1, x2, y2 = bbox
         img_w           = image_shape[1]
         box_cx          = (x1 + x2) / 2

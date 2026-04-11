@@ -15,7 +15,7 @@ TEST_IMAGES_DIR = os.path.join(REPO_DIR, 'data', 'test_images')
 OUTPUT_DIR      = os.path.join(REPO_DIR, 'driver', 'outputs')
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
-RUN_NO = 4
+RUN_NO = 5
 
 # ── Init driver ───────────────────────────────────────────────────────────────
 from model import Model
