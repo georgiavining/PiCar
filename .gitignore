@@ -26,14 +26,15 @@ Thumbs.db
 .profile
 *.log
 
-#model weights
+#lane navigation model weights
 *.h5
 
 # except 
 !models/lane_navigation/outputs/weights/mv3_angle_and_speed_best_model.h5
+!driver/code/mv3_angle_and_speed_best_model.h5
 
 #object detection model weights
 *.pt
 
 # except
-!models/object_detection/outputs/weights/best_model.pt
+!driver/code/run3_best_model.pt
