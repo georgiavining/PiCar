@@ -17,7 +17,7 @@ TRAIN_DIR = DATA_DIR / "training_images"
 CACHE_DIR = os.path.join(DATA_DIR, "valid_image_ids.csv")
 
 #--Config----------------------------------------------------------------------------
-saved_model = 'mv3_run7_best_model.h5'
+saved_model = 'mv3_angle_and_speed_best_model.h5'
 WEIGHTS_PATH = os.path.join(WEIGHTS_DIR, saved_model)
 
 #--Main------------------------------------------------------------------------------
@@ -32,7 +32,7 @@ def build_model(input_shape=(224, 224, 3)):
     x       = tf.keras.layers.Dropout(0.3)(x)
     x       = tf.keras.layers.Dense(128, activation='relu')(x)
     x       = tf.keras.layers.Dropout(0.2)(x)
-    outputs = tf.keras.layers.Dense(1, activation='sigmoid')(x)
+    outputs = tf.keras.layers.Dense(2, activation='sigmoid')(x)
     return tf.keras.Model(inputs, outputs)
 
 model = build_model()
@@ -44,8 +44,6 @@ def representative_dataset():
     for img_path in image_paths:
         img = cv2.imread(str(img_path))
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-        h   = img.shape[0]
-        img = img[h//2:, :, :]
         img = cv2.resize(img, (224, 224))
         img = img.astype(np.float32)
         yield [np.expand_dims(img, axis=0)]
