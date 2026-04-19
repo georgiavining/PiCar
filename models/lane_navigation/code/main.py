@@ -16,7 +16,7 @@ from sklearn.model_selection import train_test_split
 
 from data import scan_valid_images, make_tf_dataset
 from seed import set_seed
-from model import create_mv3_model
+from model import create_mv3_model, create_mv2_model
 
 #--Paths----------------------------------------------------------------------------
 CODE_DIR = Path(__file__).resolve().parent
@@ -37,7 +37,7 @@ WIDTH = 224
 BATCH_SIZE = 32
 LR = 1e-4
 PATIENCE=10
-RUN_NAME = "mv3_angle_and_speed"
+RUN_NAME = "mv2_run1"
 SEED = 42
 
 #--Main------------------------------------------------------------------------------
@@ -61,15 +61,15 @@ def main():
 
     train_df, val_df = train_test_split(df, test_size=0.15, random_state=SEED)
 
-    from tensorflow.keras.applications.mobilenet_v3 import preprocess_input as mv3_preprocess
-    train_ds = make_tf_dataset(train_df, TRAIN_DIR, BATCH_SIZE, is_training=True, resize=(HEIGHT, WIDTH), preprocess_fn=mv3_preprocess)
+    from tensorflow.keras.applications.mobilenet_v2 import preprocess_input as mv2_preprocess
+    train_ds = make_tf_dataset(train_df, TRAIN_DIR, BATCH_SIZE, is_training=True, resize=(HEIGHT, WIDTH), preprocess_fn=mv2_preprocess)
     print(f"Training dataset: {len(train_df)} samples")
 
-    val_ds   = make_tf_dataset(val_df, TRAIN_DIR, BATCH_SIZE, is_training=False, resize=(HEIGHT, WIDTH),  preprocess_fn=mv3_preprocess)
+    val_ds   = make_tf_dataset(val_df, TRAIN_DIR, BATCH_SIZE, is_training=False, resize=(HEIGHT, WIDTH),  preprocess_fn=mv2_preprocess)
     print(f"Validation dataset: {len(val_df)} samples")
 
     # ── Model ─────────────────────────────────────────────────────────────────
-    model = create_mv3_model(input_shape=(HEIGHT, WIDTH, 3))
+    model = create_mv2_model(input_shape=(HEIGHT, WIDTH, 3))
 
     model.compile(
         optimizer=tf.keras.optimizers.Adam(learning_rate=LR),
