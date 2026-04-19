@@ -43,4 +43,4 @@ Thumbs.db
 *.tflite
 
 #except 
-
+!models/lane_navigation/outputs/weights/lane_int8_v2.tflite

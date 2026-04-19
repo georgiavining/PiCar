@@ -1,26 +1,16 @@
 import tensorflow as tf
 import numpy as np
 import cv2
-from pathlib import Path
 import os
+os.environ['TF_NUM_INTEROP_THREADS'] = '1'
+os.environ['TFLITE_XNNPACK_FORCE_DISABLE'] = '1'
+from pathlib import Path
 
-#--Paths----------------------------------------------------------------------------
-CODE_DIR = Path(__file__).resolve().parent
-LANE_NAV_DIR = CODE_DIR.parent
-OUTPUTS_DIR = LANE_NAV_DIR / "outputs"
-WEIGHTS_DIR = OUTPUTS_DIR / "weights"
+CODE_DIR    = Path(__file__).resolve().parent
+WEIGHTS_DIR = CODE_DIR.parent / 'outputs' / 'weights'
+REPO_DIR    = Path(__file__).resolve().parents[3]
+TRAIN_DIR   = REPO_DIR / 'data' / 'training_images'
 
-REPO_DIR = Path(__file__).resolve().parents[3]
-DATA_DIR = REPO_DIR / "data"
-TRAIN_CSV = DATA_DIR / "train.csv"
-TRAIN_DIR = DATA_DIR / "training_images"
-CACHE_DIR = os.path.join(DATA_DIR, "valid_image_ids.csv")
-
-#--Config----------------------------------------------------------------------------
-saved_model = 'mv3_angle_and_speed_best_model.h5'
-WEIGHTS_PATH = os.path.join(WEIGHTS_DIR, saved_model)
-
-#--Main------------------------------------------------------------------------------
 def build_model(input_shape=(224, 224, 3)):
     base_model = tf.keras.applications.MobileNetV3Small(
         include_top=False, weights=None,
@@ -36,18 +26,27 @@ def build_model(input_shape=(224, 224, 3)):
     return tf.keras.Model(inputs, outputs)
 
 model = build_model()
-model.load_weights(WEIGHTS_PATH)
+model.load_weights(str(WEIGHTS_DIR / 'mv3_angle_and_speed_best_model.h5'))
 
+# verify before converting
+img = cv2.imread(str(TRAIN_DIR / '0.png'))
+img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+img = cv2.resize(img, (224, 224)).astype(np.float32)
+pred = model(np.expand_dims(img, 0), training=False).numpy()
+print(f"Pre-conversion prediction: angle={pred[0][0]*80+50:.1f} speed={round(pred[0][1])*35}")
 
+# representative dataset
 def representative_dataset():
-    image_paths = list(Path(TRAIN_DIR).glob('*.png'))[:200]
+    image_paths = sorted(Path(TRAIN_DIR).glob('*.png'))[:500]
     for img_path in image_paths:
         img = cv2.imread(str(img_path))
+        if img is None:
+            continue
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-        img = cv2.resize(img, (224, 224))
-        img = img.astype(np.float32)
-        yield [np.expand_dims(img, axis=0)]
+        img = cv2.resize(img, (224, 224)).astype(np.float32)  # float32 not uint8
+        yield [np.expand_dims(img, 0)]
 
+# convert
 converter = tf.lite.TFLiteConverter.from_keras_model(model)
 converter.optimizations = [tf.lite.Optimize.DEFAULT]
 converter.representative_dataset = representative_dataset
@@ -56,6 +55,37 @@ converter.inference_input_type  = tf.uint8
 converter.inference_output_type = tf.uint8
 
 tflite_model = converter.convert()
-with open(os.path.join(WEIGHTS_DIR, 'lane_int8.tflite'), 'wb') as f:
+
+output_path = str(WEIGHTS_DIR / 'lane_int8_v2.tflite')
+with open(output_path, 'wb') as f:
     f.write(tflite_model)
-print("Lane TFLite model saved to Drive")
+print(f"Saved to {output_path}")
+
+
+interp = tf.lite.Interpreter(
+    model_path=output_path,
+    experimental_delegates=None,
+    num_threads=1
+)
+
+interp.allocate_tensors()
+inp = interp.get_input_details()
+out = interp.get_output_details()
+print(f"TFLite input  dtype: {inp[0]['dtype']}")
+print(f"TFLite output dtype: {out[0]['dtype']}")
+print(f"TFLite output quantization: {out[0]['quantization']}")
+
+# test with same image
+test_img = cv2.imread(str(TRAIN_DIR / '0.png'))
+test_img = cv2.cvtColor(test_img, cv2.COLOR_BGR2RGB)
+test_img = cv2.resize(test_img, (224, 224)).astype(np.uint8)
+test_img = np.expand_dims(test_img, 0)
+
+interp.set_tensor(inp[0]['index'], test_img)
+interp.invoke()
+output = interp.get_tensor(out[0]['index'])
+scale, zp = out[0]['quantization']
+angle_norm = (float(output[0][0]) - zp) * scale
+speed_norm = (float(output[0][1]) - zp) * scale
+print(f"TFLite raw output: {output[0]}")
+print(f"TFLite prediction: angle={angle_norm*80+50:.1f} speed={round(speed_norm)*35}")
