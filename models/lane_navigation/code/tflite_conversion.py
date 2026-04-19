@@ -12,9 +12,9 @@ REPO_DIR    = Path(__file__).resolve().parents[3]
 TRAIN_DIR   = REPO_DIR / 'data' / 'training_images'
 
 def build_model(input_shape=(224, 224, 3)):
-    base_model = tf.keras.applications.MobileNetV3Small(
-        include_top=False, weights=None,
-        input_shape=input_shape, pooling='avg'
+    base_model = tf.keras.applications.MobileNetV2(
+    include_top=False, weights=None,
+    input_shape=input_shape, pooling='avg'
     )
     base_model.trainable = True
     inputs  = tf.keras.layers.Input(shape=input_shape)
@@ -26,7 +26,7 @@ def build_model(input_shape=(224, 224, 3)):
     return tf.keras.Model(inputs, outputs)
 
 model = build_model()
-model.load_weights(str(WEIGHTS_DIR / 'mv3_angle_and_speed_best_model.h5'))
+model.load_weights(str(WEIGHTS_DIR / 'mv2_run1_best_model.h5'))
 
 # verify before converting
 img = cv2.imread(str(TRAIN_DIR / '0.png'))
@@ -43,7 +43,8 @@ def representative_dataset():
         if img is None:
             continue
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-        img = cv2.resize(img, (224, 224)).astype(np.float32)  # float32 not uint8
+        img = cv2.resize(img, (224, 224)).astype(np.float32)
+        img = img / 127.5 - 1.0  # MobileNetV2 preprocessing
         yield [np.expand_dims(img, 0)]
 
 # convert
@@ -56,7 +57,7 @@ converter.inference_output_type = tf.uint8
 
 tflite_model = converter.convert()
 
-output_path = str(WEIGHTS_DIR / 'lane_int8_v2.tflite')
+output_path = str(WEIGHTS_DIR / 'mv2_lane_int8_v2.tflite')
 with open(output_path, 'wb') as f:
     f.write(tflite_model)
 print(f"Saved to {output_path}")
