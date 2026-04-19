@@ -21,20 +21,22 @@ class LaneModel:
 
     def preprocess(self, image):
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-        h     = image.shape[0]
-        image = image[h//2:, :, :]
         image = cv2.resize(image, self.resize_shape)
-        return np.expand_dims(image.astype(np.uint8), axis=0)
+        image = image.astype(np.uint8) 
+        return np.expand_dims(image, axis=0)
 
     def predict(self, image):
         img = self.preprocess(image)
         self.interpreter.set_tensor(self.input_details[0]['index'], img)
         self.interpreter.invoke()
-        output               = self.interpreter.get_tensor(self.output_details[0]['index'])
-        scale, zero_point    = self.output_details[0]['quantization']
-        angle_norm           = (float(output[0][0]) - zero_point) * scale
-        angle                = angle_norm * 80 + 50
-        speed                = 35
+        output            = self.interpreter.get_tensor(self.output_details[0]['index'])
+        scale, zero_point = self.output_details[0]['quantization']
+        print(f"raw output: {output[0]}, scale: {scale}, zero_point: {zero_point}")
+        angle_norm        = (float(output[0][0]) - zero_point) * scale
+        speed_norm        = (float(output[0][1]) - zero_point) * scale
+        print(f"angle_norm: {angle_norm:.3f}, speed_norm: {speed_norm:.3f}")
+        angle             = angle_norm * 80 + 50
+        speed             = round(speed_norm) * 35
         return angle, speed
 
 
@@ -56,40 +58,66 @@ class ObjectDetectionModel:
         input_shape = self.input_details[0]['shape']
         h, w        = input_shape[1], input_shape[2]
         img         = cv2.resize(image, (w, h))
-        img         = np.expand_dims(img.astype(np.uint8), axis=0)
+        img         = (img.astype(np.int16) - 128).astype(np.int8)
+        img         = np.expand_dims(img, axis=0)
 
         self.interpreter.set_tensor(self.input_details[0]['index'], img)
         self.interpreter.invoke()
 
-        objs       = detect.get_objects(self.interpreter, self.conf_threshold)
+        # dequantize output
+        output            = self.interpreter.get_tensor(self.output_details[0]['index'])
+        scale, zero_point = self.output_details[0]['quantization']
+        output            = (output.astype(np.float32) - zero_point) * scale
+        # output shape: (1, 8, 2100) — transpose to (1, 2100, 8)
+        output = output[0].T  # shape (2100, 8)
+
         ih, iw     = image.shape[:2]
         detections = []
-        for obj in objs:
-            x1 = obj.bbox.xmin * iw / w
-            y1 = obj.bbox.ymin * ih / h
-            x2 = obj.bbox.xmax * iw / w
-            y2 = obj.bbox.ymax * ih / h
+
+        for row in output:
+            class_scores = row[4:]                    # 4 class scores
+            cls_id       = int(np.argmax(class_scores))
+            confidence   = float(class_scores[cls_id])
+
+            if confidence < self.conf_threshold:
+                continue
+
+            # bbox is cx, cy, bw, bh normalised to input size
+            cx, cy, bw, bh = row[:4]
+            x1 = (cx - bw / 2) * iw / w
+            y1 = (cy - bh / 2) * ih / h
+            x2 = (cx + bw / 2) * iw / w
+            y2 = (cy + bh / 2) * ih / h
+
             detections.append({
-                'class':      self.classes[obj.id],
-                'confidence': obj.score,
+                'class':      self.classes[cls_id],
+                'confidence': confidence,
                 'bbox':       [x1, y1, x2, y2]
             })
+
         return detections
+
+
+class CarState:
+    LANE_FOLLOWING = 'lane_following'
+    STOPPING       = 'stopping'
+    TURNING_LEFT   = 'turning_left'
+    TURNING_RIGHT  = 'turning_right'
 
 
 class Model:
     def __init__(self):
+        self.state        = CarState.LANE_FOLLOWING
         self.lane_model   = LaneModel()
         self.object_model = ObjectDetectionModel()
 
-    def is_close(self, bbox, image_shape, threshold=0.05):
+    def is_close(self, bbox, image_shape, threshold=0.025):
         x1, y1, x2, y2 = bbox
         img_h, img_w    = image_shape[:2]
-        img_area        = img_h * img_w
         box_area        = (x2 - x1) * (y2 - y1)
-        return (box_area / img_area) > threshold
+        return (box_area / (img_h * img_w)) > threshold
 
-    def is_in_road(self, bbox, image_shape, road_margin=0.6):
+    def is_in_road(self, bbox, image_shape, road_margin=0.3):
         x1, y1, x2, y2 = bbox
         img_w           = image_shape[1]
         box_cx          = (x1 + x2) / 2
@@ -98,20 +126,31 @@ class Model:
         right_bound     = img_cx * (1 + road_margin / 2)
         return left_bound < box_cx < right_bound
 
+    def _update_state(self, detections, image_shape):
+        close = [d for d in detections if self.is_close(d['bbox'], image_shape)]
+
+        if any(d['class'] in ('pedestrian', 'obstacle')
+               and self.is_in_road(d['bbox'], image_shape)
+               for d in close):
+            self.state = CarState.STOPPING
+        elif any(d['class'] == 'left_turn_sign' for d in close):
+            self.state = CarState.TURNING_LEFT
+        elif any(d['class'] == 'right_turn_sign' for d in close):
+            self.state = CarState.TURNING_RIGHT
+        else:
+            self.state = CarState.LANE_FOLLOWING
+
     def predict(self, image):
         detections = self.object_model.predict(image)
+        self._update_state(detections, image.shape)
 
-        for d in detections:
-            if not self.is_close(d['bbox'], image.shape):
-                continue
-            in_road = self.is_in_road(d['bbox'], image.shape)
-            if d['class'] in ('pedestrian', 'obstacle') and in_road:
-                return 90, 0
-
-        detected_close = [d['class'] for d in detections
-                          if self.is_close(d['bbox'], image.shape)]
-        if 'left_turn_sign' in detected_close or 'right_turn_sign' in detected_close:
+        if self.state == CarState.STOPPING:
+            return 90, 0
+        elif self.state == CarState.TURNING_LEFT:
             angle, _ = self.lane_model.predict(image)
             return angle, 20
-
-        return self.lane_model.predict(image)
+        elif self.state == CarState.TURNING_RIGHT:
+            angle, _ = self.lane_model.predict(image)
+            return angle, 20
+        else:
+            return self.lane_model.predict(image)

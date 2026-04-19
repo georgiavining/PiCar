@@ -38,3 +38,9 @@ Thumbs.db
 
 # except
 !driver/code/run3_best.pt
+
+#tflite model weights
+*.tflite
+
+#except 
+
