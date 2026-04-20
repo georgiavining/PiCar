@@ -30,18 +30,14 @@ Thumbs.db
 *.h5
 
 # except 
-!models/lane_navigation/outputs/weights/mv3_angle_and_speed_best_model.h5
-!driver/code/mv3_angle_and_speed_best_model.h5
 
 #object detection model weights
 *.pt
 
 # except
-!driver/code/run3_best.pt
+
 
 #tflite model weights
 *.tflite
 
-#except 
-!models/lane_navigation/outputs/weights/lane_int8_v2.tflite
-!models/lane_navigation/outputs/weights/mv2_lane_int8_v2.tflite
+#except
