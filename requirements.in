@@ -7,3 +7,6 @@ scikit-learn
 tqdm
 setuptools
 matplotlib
+opencv-python
+tensorflow
+ultralyticsuv 
