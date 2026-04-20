@@ -10,12 +10,10 @@ import math
 TESTING_DIR = Path(__file__).resolve().parent
 DRIVER_DIR = TESTING_DIR.parent
 REPO_DIR = DRIVER_DIR.parent
-
 sys.path.append(DRIVER_DIR)
+TEST_IMAGES_DIR = REPO_DIR / "data" / "test_images"
+OUTPUT_DIR = TESTING_DIR / "outputs"
 
-TEST_IMAGES_DIR = os.path.join(REPO_DIR, 'data', 'test_images')
-OUTPUT_DIR      = os.path.join(TESTING_DIR, 'outputs')
-os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 RUN_NO = 5
 

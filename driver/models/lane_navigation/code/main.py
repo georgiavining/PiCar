@@ -29,7 +29,7 @@ REPO_DIR = Path(__file__).resolve().parents[4]
 DATA_DIR = REPO_DIR / "data"
 TRAIN_CSV = DATA_DIR / "train.csv"
 TRAIN_DIR = DATA_DIR / "training_images"
-CACHE_DIR = os.path.join(DATA_DIR, "valid_image_ids.csv")
+CACHE_DIR = DATA_DIR / "valid_image_ids.csv"
 
 #--Config----------------------------------------------------------------------------
 HEIGHT = 224
