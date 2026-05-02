@@ -55,5 +55,5 @@ class Model:
         speed_norm = float(pred[0, 1])
 
         angle = angle_norm * 80 + 50    
-        speed = round(speed_norm) * 35  
+        speed = speed_norm * 35  
         return angle, speed
