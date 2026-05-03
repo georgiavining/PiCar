@@ -7,9 +7,6 @@ requirements.txt
 # kaggle model weights
 *.pth
 
-#except
-kaggle/outputs/models/*.pth
-
 # python
 __pycache__/
 *.pyc
