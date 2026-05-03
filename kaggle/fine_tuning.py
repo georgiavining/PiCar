@@ -29,7 +29,7 @@ WEIGHT_DECAY = 1e-3
 PATIENCE     = 7
 DROPOUT_FIRST_LAYER = 0.4
 DROPOUT_SECOND_LAYER = 0.3
-RUN_NAME = "run2"
+RUN_NAME = "run3"
 DEVICE       = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 #--Paths----------------------------------------------------------------------------

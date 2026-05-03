@@ -38,10 +38,13 @@ for f in sorted(NEW_IMG_DIR.glob("*.png")):
     dest     = TRAIN_DIR / new_name
     shutil.copy(f, dest)
 
+    angle_normalised = (angle - 50) / 80  
+    speed_normalised = speed / 35 
+
     records.append({
         "image_id": next_id,
-        "angle":    angle,
-        "speed":    speed
+        "angle":    angle_normalised,
+        "speed":    speed_normalised
     })
     next_id += 1
 
