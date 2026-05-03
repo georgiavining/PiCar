@@ -4,12 +4,13 @@ import shutil
 from pathlib import Path
 
 BASE_DIR          = os.path.dirname(os.path.abspath(__file__))
+REPO_DIR          = os.path.dirname(BASE_DIR)
 OUTPUTS_PATH    = os.path.join(BASE_DIR, "outputs")
-DATA_PATH         = os.path.join(BASE_DIR, "data")
+DATA_PATH         = os.path.join(REPO_DIR, "data")
 TRAIN_CSV         = os.path.join(DATA_PATH, "train.csv")
-TRAIN_DIR  = Path(os.path.join(BASE_DIR, "data", "training_images"))
+TRAIN_DIR  = Path(os.path.join(REPO_DIR, "data", "training_images"))
 CACHE_PATH = Path(os.path.join(DATA_PATH, "valid_image_ids.csv"))
-NEW_IMG_DIR = Path(os.path.join(BASE_DIR, "new_data"))
+NEW_IMG_DIR = Path(os.path.join(REPO_DIR, "data", "new_data"))
 
 
 #-- load existing data -------------------------------------------
@@ -57,3 +58,9 @@ print(f"Combined dataset: {len(combined_df)} rows saved to {TRAIN_CSV}")
 if CACHE_PATH.exists():
     CACHE_PATH.unlink()
     print("Deleted image cache — will rescan on next training run")
+
+print(f"\nSummary:")
+print(f"  Original images:        {len(original_df)}")
+print(f"  New images copied:      {len(records)}")
+print(f"  New images oversampled: {len(new_df_oversampled)}")
+print(f"  Combined dataset:       {len(combined_df)}")

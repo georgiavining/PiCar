@@ -29,13 +29,14 @@ WEIGHT_DECAY = 1e-3
 PATIENCE     = 7
 DROPOUT_FIRST_LAYER = 0.4
 DROPOUT_SECOND_LAYER = 0.3
-RUN_NAME = "v2"
+RUN_NAME = "run2"
 DEVICE       = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 #--Paths----------------------------------------------------------------------------
 BASE_DIR          = os.path.dirname(os.path.abspath(__file__))
+REPO_DIR          = os.path.dirname(BASE_DIR)
 
-DATA_PATH         = os.path.join(BASE_DIR, "data")
+DATA_PATH         = os.path.join(REPO_DIR, "data")
 TRAIN_CSV         = os.path.join(DATA_PATH, "train.csv")
 TRAIN_DIR      = os.path.join(DATA_PATH, "training_images")
 TEST_DIR       = os.path.join(DATA_PATH, "test_images")
