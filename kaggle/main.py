@@ -29,26 +29,25 @@ WEIGHT_DECAY = 1e-3
 PATIENCE     = 10
 DROPOUT_FIRST_LAYER = 0.4
 DROPOUT_SECOND_LAYER = 0.3
-RUN_NAME = "mobilenet1"
+RUN_NAME = "run6"
 DEVICE       = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 #--Paths----------------------------------------------------------------------------
 BASE_DIR          = os.path.dirname(os.path.abspath(__file__))
+REPO_DIR          = os.path.dirname(BASE_DIR)
 
-DATA_PATH         = os.path.join(BASE_DIR, "data")
+DATA_PATH         = os.path.join(REPO_DIR, "data")
 TRAIN_CSV         = os.path.join(DATA_PATH, "train.csv")
 TRAIN_DIR      = os.path.join(DATA_PATH, "training_images")
 TEST_DIR       = os.path.join(DATA_PATH, "test_images")
 OUTPUTS_PATH    = os.path.join(BASE_DIR, "kaggle_outputs")
 MODELS_DIR = os.path.join(OUTPUTS_PATH, "models")
 MODEL_PATH = os.path.join(MODELS_DIR, RUN_NAME+"_best_model.pth")
-PREDICTIONS_DIR = os.path.join(OUTPUTS_PATH, "predictions")
-PREDICTIONS_PATH = os.path.join(PREDICTIONS_DIR, RUN_NAME+".csv")
+SAVED_MODEL_PATH = os.path.join(MODELS_DIR, "best_model.pth")
 TRAINING_CURVE_DIR = os.path.join(OUTPUTS_PATH, "training_curves")
 TRAINING_CURVE_PATH = os.path.join(TRAINING_CURVE_DIR, RUN_NAME + '_training_curve.png')
 
 os.makedirs(MODELS_DIR, exist_ok=True)
-os.makedirs(PREDICTIONS_DIR, exist_ok=True)
 os.makedirs(TRAINING_CURVE_DIR, exist_ok=True)
 
 #--Main------------------------------------------------------------------------------

@@ -32,7 +32,7 @@ class Model:
         self.model = PiCarNet(pretrained=False)
         self.model.load_state_dict(
             torch.load(
-                os.path.join(model_dir, 'run2_best_model.pth'),
+                os.path.join(model_dir, 'run5_fulltraining_best_model.pth'),
                 map_location='cpu'
             )
         )

@@ -11,6 +11,7 @@ TRAIN_CSV         = os.path.join(DATA_PATH, "train.csv")
 TRAIN_DIR  = Path(os.path.join(REPO_DIR, "data", "training_images"))
 CACHE_PATH = Path(os.path.join(DATA_PATH, "valid_image_ids.csv"))
 NEW_IMG_DIR = Path(os.path.join(REPO_DIR, "data", "new_data"))
+OVERSAMPLE_FACTOR = 1
 
 
 #-- load existing data -------------------------------------------
@@ -52,7 +53,7 @@ print(f"Copied and renamed {len(records)} new images")
 
 #-- combine and save ---------------------------------------------
 new_df      = pd.DataFrame(records)
-new_df_oversampled = pd.concat([new_df] * 5, ignore_index=True)
+new_df_oversampled = pd.concat([new_df] * OVERSAMPLE_FACTOR, ignore_index=True)
 combined_df = pd.concat([original_df, new_df_oversampled], ignore_index=True)
 combined_df.to_csv(TRAIN_CSV, index=False)
 print(f"Combined dataset: {len(combined_df)} rows saved to {TRAIN_CSV}")
