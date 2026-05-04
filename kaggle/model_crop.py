@@ -32,13 +32,20 @@ class Model:
         self.model = PiCarNet(pretrained=False)
         self.model.load_state_dict(
             torch.load(
-                os.path.join(model_dir, 'sampling_collected_best_model.pth'),
+                os.path.join(model_dir, 'cropping_with_collected_best_model.pth'),
                 map_location='cpu'
             )
         )
         self.model.eval()
         self.transform = transforms.Compose([
             transforms.ToPILImage(),
+            transforms.Lambda(lambda img: transforms.functional.crop(
+            img,
+            top=int(img.height * 0.3),
+            left=0,
+            height=int(img.height * (1 - 0.3)),
+            width=img.width
+        )),
             transforms.Resize((120, 160)),  
             transforms.ToTensor(),
             transforms.Normalize(
